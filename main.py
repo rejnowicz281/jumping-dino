@@ -1,19 +1,25 @@
 import pygame
 from sys import exit
 
-import pygame.time
-
 pygame.init()
 
 screen = pygame.display.set_mode((800, 400))
+
+start_time = 0
+
+
+def display_score():
+    current_time = int(pygame.time.get_ticks() / 100) - start_time
+    score_surf = test_font.render(str(current_time), False, (64, 64, 64))
+    score_rect = score_surf.get_rect(midtop=(400, 50))
+    screen.blit(score_surf, score_rect)
+
 
 pygame.display.set_caption("Jumping Dino")
 test_font = pygame.font.Font('font/dogicapixelbold.ttf', 30)
 
 background_surface = pygame.image.load('graphics/Sky.png').convert()
 ground_surface = pygame.image.load('graphics/ground.png').convert()
-text_surface = test_font.render("Hey", False, 'Black')
-text_rect = text_surface.get_rect(midtop=(400, 20))
 
 snail_surface = pygame.image.load('graphics/snail/snail1.png').convert_alpha()
 snail_rect = snail_surface.get_rect(midbottom=(600, 300))
@@ -39,13 +45,13 @@ while True:
         else:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 snail_rect.centerx = 600
+                start_time = int(pygame.time.get_ticks() / 100)
                 game_active = True
 
     if game_active:
         screen.blit(background_surface, (0, 0))
         screen.blit(ground_surface, (0, 300))
-        pygame.draw.rect(screen, "#c0e8ec", text_rect.inflate(10, 10))
-        screen.blit(text_surface, text_rect)
+        display_score()
 
         # Snail
         screen.blit(snail_surface, snail_rect)
