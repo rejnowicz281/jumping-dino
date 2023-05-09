@@ -100,7 +100,7 @@ class Game:
 
     def add_random_obstacle(self):
         x = random.randint(900, 1100)
-        self.obstacles.append(Snail(x) if random.randint(0, 2) else Fly(x))
+        self.obstacles.append(random.choice([Fly(x), Snail(x), Snail(x), Snail(x)]))
 
     def draw_intro_screen(self):
         screen.fill((100, 160, 192))
