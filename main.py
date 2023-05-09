@@ -18,14 +18,27 @@ def draw_text(text, x, y, font=main_font, surface=screen):
 
 
 class Player:
-    PLAYER_SURFACE = pygame.image.load('graphics/Player/player_walk_1.png').convert_alpha()
+    PLAYER_WALK = [pygame.image.load('graphics/Player/player_walk_1.png').convert_alpha(),
+                   pygame.image.load('graphics/Player/player_walk_2.png').convert_alpha()]
+    PLAYER_JUMP = pygame.image.load('graphics/Player/jump.png').convert_alpha()
 
     def __init__(self, x=80, y=300):
         self.gravity = 0
-        self.rect = self.PLAYER_SURFACE.get_rect(midbottom=(x, y))
+        self.anim_index = 0
+        self.current_anim = self.PLAYER_WALK[self.anim_index]
+        self.rect = self.current_anim.get_rect(midbottom=(x, y))
+
+    def animation(self):
+        if self.rect.bottom < 300:
+            self.current_anim = self.PLAYER_JUMP
+        else:
+            self.anim_index += 0.1
+            if self.anim_index >= len(self.PLAYER_WALK):
+                self.anim_index = 0
+            self.current_anim = self.PLAYER_WALK[int(self.anim_index)]
 
     def draw(self):
-        screen.blit(self.PLAYER_SURFACE, self.rect)
+        screen.blit(self.current_anim, self.rect)
 
     def apply_gravity(self):
         self.gravity += 1
@@ -36,23 +49,41 @@ class Player:
 
 
 class Snail:
-    SNAIL_SURFACE = pygame.image.load('graphics/snail/snail1.png').convert_alpha()
+    SNAIL_FRAME = [pygame.image.load('graphics/snail/snail1.png').convert_alpha(),
+                   pygame.image.load('graphics/snail/snail2.png').convert_alpha()]
 
     def __init__(self, x=900, y=300):
-        self.rect = self.SNAIL_SURFACE.get_rect(midbottom=(x, y))
+        self.anim_index = 0
+        self.current_anim = self.SNAIL_FRAME[self.anim_index]
+        self.rect = self.current_anim.get_rect(midbottom=(x, y))
 
     def draw(self):
-        screen.blit(self.SNAIL_SURFACE, self.rect)
+        screen.blit(self.current_anim, self.rect)
+
+    def animation(self):
+        self.anim_index += 0.5
+        if self.anim_index >= len(self.SNAIL_FRAME):
+            self.anim_index = 0
+        self.current_anim = self.SNAIL_FRAME[int(self.anim_index)]
 
 
 class Fly:
-    FLY_SURFACE = pygame.image.load('graphics/Fly/Fly1.png').convert_alpha()
+    FLY_FRAME = [pygame.image.load('graphics/Fly/Fly1.png').convert_alpha(),
+                 pygame.image.load('graphics/Fly/Fly2.png').convert_alpha()]
 
     def __init__(self, x=900, y=200):
-        self.rect = self.FLY_SURFACE.get_rect(midbottom=(x, y))
+        self.anim_index = 0
+        self.current_anim = self.FLY_FRAME[self.anim_index]
+        self.rect = self.current_anim.get_rect(midbottom=(x, y))
 
     def draw(self):
-        screen.blit(self.FLY_SURFACE, self.rect)
+        screen.blit(self.current_anim, self.rect)
+
+    def animation(self):
+        self.anim_index += 0.1
+        if self.anim_index >= len(self.FLY_FRAME):
+            self.anim_index = 0
+        self.current_anim = self.FLY_FRAME[int(self.anim_index)]
 
 
 class Game:
@@ -101,6 +132,7 @@ class Game:
 
             for obstacle in self.obstacles:
                 obstacle.rect.x -= 8
+                obstacle.animation()
                 obstacle.draw()
 
                 if obstacle.rect.colliderect(self.player.rect):
@@ -139,6 +171,7 @@ while True:
         game.update_score()
         game.draw_score()
 
+        game.player.animation()
         game.player.draw()
 
         game.player.apply_gravity()
