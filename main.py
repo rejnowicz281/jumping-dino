@@ -38,7 +38,7 @@ class Player:
 class Snail:
     SNAIL_SURFACE = pygame.image.load('graphics/snail/snail1.png').convert_alpha()
 
-    def __init__(self, x=1000, y=300):
+    def __init__(self, x=900, y=300):
         self.rect = self.SNAIL_SURFACE.get_rect(midbottom=(x, y))
 
     def draw(self):
@@ -48,7 +48,7 @@ class Snail:
 class Fly:
     FLY_SURFACE = pygame.image.load('graphics/Fly/Fly1.png').convert_alpha()
 
-    def __init__(self, x=1000, y=150):
+    def __init__(self, x=900, y=200):
         self.rect = self.FLY_SURFACE.get_rect(midbottom=(x, y))
 
     def draw(self):
@@ -62,9 +62,14 @@ class Game:
     def __init__(self):
         self.score = 0
         self.start_time = 0
-        self.obstacles = [Fly(), Snail(1300), Fly(1500), Fly(1700), Snail(2000)]
+        self.obstacles = []
+        self.add_random_obstacle()
         self.player = Player()
         self.active = True
+
+    def add_random_obstacle(self):
+        x = random.randint(900, 1100)
+        self.obstacles.append(Snail(x) if random.randint(0, 2) else Fly(x))
 
     def draw_intro_screen(self):
         screen.fill((100, 160, 192))
@@ -91,16 +96,21 @@ class Game:
         draw_text(str(self.score), 400, 50)
 
     def update_obstacles(self):
-        for obstacle in self.obstacles:
-            obstacle.rect.x -= 5
-            obstacle.draw()
+        if game.obstacles:
+            if self.obstacles[0].rect.right < 0: del self.obstacles[0]
 
-            if obstacle.rect.colliderect(self.player.rect):
-                self.active = False
+            for obstacle in self.obstacles:
+                obstacle.rect.x -= 8
+                obstacle.draw()
+
+                if obstacle.rect.colliderect(self.player.rect):
+                    self.active = False
+                    self.obstacles = []
+                    self.player.rect.bottom = 300
 
 
 obstacle_timer = pygame.USEREVENT + 1
-pygame.time.set_timer(obstacle_timer, 1700)
+pygame.time.set_timer(obstacle_timer, 1000)
 
 clock = pygame.time.Clock()
 game = Game()
@@ -117,7 +127,7 @@ while True:
                 if event.key == pygame.K_SPACE and game.player.rect.bottom == 300:
                     game.player.gravity = -20
             if event.type == obstacle_timer:
-                pass
+                game.add_random_obstacle()
         else:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 game.start_time = int(pygame.time.get_ticks() / 100)
