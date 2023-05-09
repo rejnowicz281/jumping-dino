@@ -1,92 +1,141 @@
 import pygame
 from sys import exit
+import random
 
 pygame.init()
 
-screen = pygame.display.set_mode((800, 400))
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 400
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+main_font = pygame.font.Font('font/dogicapixelbold.ttf', 30)
+pygame.display.set_caption("Jumping Dino")
 
-start_time = 0
 
-
-def draw_text(text, x, y, font, surface=screen):
+def draw_text(text, x, y, font=main_font, surface=screen):
     content = font.render(str(text), False, (64, 64, 64))
     content_rect = content.get_rect(center=(x, y))
     surface.blit(content, content_rect)
 
 
-pygame.display.set_caption("Jumping Dino")
-test_font = pygame.font.Font('font/dogicapixelbold.ttf', 30)
+class Player:
+    PLAYER_SURFACE = pygame.image.load('graphics/Player/player_walk_1.png').convert_alpha()
 
-background_surface = pygame.image.load('graphics/Sky.png').convert()
-ground_surface = pygame.image.load('graphics/ground.png').convert()
+    def __init__(self, x=80, y=300):
+        self.gravity = 0
+        self.rect = self.PLAYER_SURFACE.get_rect(midbottom=(x, y))
 
-snail_surface = pygame.image.load('graphics/snail/snail1.png').convert_alpha()
-snail_rect = snail_surface.get_rect(midbottom=(600, 300))
+    def draw(self):
+        screen.blit(self.PLAYER_SURFACE, self.rect)
 
-player_surface = pygame.image.load('graphics/Player/player_walk_1.png').convert_alpha()
-player_rect = player_surface.get_rect(midbottom=(80, 300))
-player_gravity = 0
+    def apply_gravity(self):
+        self.gravity += 1
+        self.rect.y += self.gravity
 
-# Game over screen
+        if self.rect.bottom > 300:
+            self.rect.bottom = 300
 
-player_stand = pygame.image.load('graphics/Player/player_stand.png').convert_alpha()
-player_stand = pygame.transform.rotozoom(player_stand, 0, 2)
-player_stand_rect = player_stand.get_rect(center=(400, 200))
 
-score = 0
+class Snail:
+    SNAIL_SURFACE = pygame.image.load('graphics/snail/snail1.png').convert_alpha()
+
+    def __init__(self, x=1000, y=300):
+        self.rect = self.SNAIL_SURFACE.get_rect(midbottom=(x, y))
+
+    def draw(self):
+        screen.blit(self.SNAIL_SURFACE, self.rect)
+
+
+class Fly:
+    FLY_SURFACE = pygame.image.load('graphics/Fly/Fly1.png').convert_alpha()
+
+    def __init__(self, x=1000, y=150):
+        self.rect = self.FLY_SURFACE.get_rect(midbottom=(x, y))
+
+    def draw(self):
+        screen.blit(self.FLY_SURFACE, self.rect)
+
+
+class Game:
+    SKY_SURFACE = pygame.image.load('graphics/Sky.png').convert()
+    GROUND_SURFACE = pygame.image.load('graphics/ground.png').convert()
+
+    def __init__(self):
+        self.score = 0
+        self.start_time = 0
+        self.obstacles = [Fly(), Snail(1300), Fly(1500), Fly(1700), Snail(2000)]
+        self.player = Player()
+        self.active = True
+
+    def draw_intro_screen(self):
+        screen.fill((100, 160, 192))
+
+        top_text = "Jumping Dino" if self.score == 0 else f"Score: {self.score}"
+        draw_text(top_text, SCREEN_WIDTH / 2, 50)
+
+        player_stand = pygame.image.load('graphics/Player/player_stand.png').convert_alpha()
+        player_stand = pygame.transform.rotozoom(player_stand, 0, 2)
+        player_stand_rect = player_stand.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
+
+        screen.blit(player_stand, player_stand_rect)
+
+        draw_text("Press 'space' to JUMP", SCREEN_WIDTH / 2, 330)
+
+    def draw_background(self):
+        screen.blit(self.SKY_SURFACE, (0, 0))
+        screen.blit(self.GROUND_SURFACE, (0, 300))
+
+    def update_score(self):
+        self.score = int(pygame.time.get_ticks() / 100) - self.start_time
+
+    def draw_score(self):
+        draw_text(str(self.score), 400, 50)
+
+    def update_obstacles(self):
+        for obstacle in self.obstacles:
+            obstacle.rect.x -= 5
+            obstacle.draw()
+
+            if obstacle.rect.colliderect(self.player.rect):
+                self.active = False
+
+
+obstacle_timer = pygame.USEREVENT + 1
+pygame.time.set_timer(obstacle_timer, 1700)
 
 clock = pygame.time.Clock()
-game_active = False
+game = Game()
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
-        if game_active:
-            if event.type == pygame.MOUSEBUTTONDOWN and player_rect.bottom == 300:
-                if player_rect.collidepoint(event.pos):
-                    player_gravity = -20
+        if game.active:
+            if event.type == pygame.MOUSEBUTTONDOWN and game.player.rect.bottom == 300:
+                if game.player.rect.collidepoint(event.pos):
+                    game.player.gravity = -20
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and player_rect.bottom == 300:
-                    player_gravity = -20
+                if event.key == pygame.K_SPACE and game.player.rect.bottom == 300:
+                    game.player.gravity = -20
+            if event.type == obstacle_timer:
+                pass
         else:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                snail_rect.centerx = 600
-                start_time = int(pygame.time.get_ticks() / 100)
-                game_active = True
+                game.start_time = int(pygame.time.get_ticks() / 100)
+                game.active = True
 
-    if game_active:
-        screen.blit(background_surface, (0, 0))
-        screen.blit(ground_surface, (0, 300))
+    if game.active:
+        game.draw_background()
 
-        score = int(pygame.time.get_ticks() / 100) - start_time
-        draw_text(str(score), 400, 50, test_font)
+        game.update_score()
+        game.draw_score()
 
-        # Snail
-        screen.blit(snail_surface, snail_rect)
-        snail_rect.x -= 7
-        if snail_rect.right < 0:
-            snail_rect.left = 800
+        game.player.draw()
 
-        # Player
-        screen.blit(player_surface, player_rect)
-        player_gravity += 1
-        player_rect.y += player_gravity
+        game.player.apply_gravity()
 
-        if player_rect.bottom > 300:
-            player_rect.bottom = 300
-
-        # Collision
-        if snail_rect.colliderect(player_rect):
-            game_active = False
+        game.update_obstacles()
     else:
-        screen.fill((100, 160, 192))
-        screen.blit(player_stand, player_stand_rect)
-        draw_text("Jumping Dino", 400, 50, test_font)
-        if score == 0:
-            draw_text("Press 'space' to start", 400, 330, test_font)
-        else:
-            draw_text(f"Score: {score}", 400, 330, test_font)
+        game.draw_intro_screen()
 
     pygame.display.update()
     clock.tick(60)
