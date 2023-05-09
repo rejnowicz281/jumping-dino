@@ -27,6 +27,8 @@ class Player:
         self.anim_index = 0
         self.current_anim = self.PLAYER_WALK[self.anim_index]
         self.rect = self.current_anim.get_rect(midbottom=(x, y))
+        self.jump_sound = pygame.mixer.Sound('audio/jump.mp3')
+        self.jump_sound.set_volume(0.1)
 
     def animation(self):
         if self.rect.bottom < 300:
@@ -46,6 +48,10 @@ class Player:
 
         if self.rect.bottom > 300:
             self.rect.bottom = 300
+
+    def jump(self):
+        self.gravity = -20
+        self.jump_sound.play()
 
 
 class Snail:
@@ -97,6 +103,9 @@ class Game:
         self.add_random_obstacle()
         self.player = Player()
         self.active = True
+        pygame.mixer.music.load('audio/music.wav')
+        pygame.mixer.music.set_volume(0.1)
+        pygame.mixer.music.play(-1)
 
     def add_random_obstacle(self):
         x = random.randint(900, 1100)
@@ -154,10 +163,10 @@ while True:
         if game.active:
             if event.type == pygame.MOUSEBUTTONDOWN and game.player.rect.bottom == 300:
                 if game.player.rect.collidepoint(event.pos):
-                    game.player.gravity = -20
+                    game.player.jump()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and game.player.rect.bottom == 300:
-                    game.player.gravity = -20
+                    game.player.jump()
             if event.type == obstacle_timer:
                 game.add_random_obstacle()
         else:
