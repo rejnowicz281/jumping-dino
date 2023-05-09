@@ -17,30 +17,37 @@ def draw_text(text, x, y, font=main_font, surface=screen):
     surface.blit(content, content_rect)
 
 
-class Player:
+class Player(pygame.sprite.Sprite):
     PLAYER_WALK = [pygame.image.load('graphics/Player/player_walk_1.png').convert_alpha(),
                    pygame.image.load('graphics/Player/player_walk_2.png').convert_alpha()]
     PLAYER_JUMP = pygame.image.load('graphics/Player/jump.png').convert_alpha()
 
     def __init__(self, x=80, y=300):
+        super().__init__()
         self.gravity = 0
         self.anim_index = 0
-        self.current_anim = self.PLAYER_WALK[self.anim_index]
-        self.rect = self.current_anim.get_rect(midbottom=(x, y))
+        self.image = self.PLAYER_WALK[self.anim_index]
+        self.rect = self.image.get_rect(midbottom=(x, y))
         self.jump_sound = pygame.mixer.Sound('audio/jump.mp3')
         self.jump_sound.set_volume(0.1)
 
+    def input(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] and self.rect.bottom == 300:
+            self.jump()
+
+    def jump(self):
+        self.gravity = -20
+        self.jump_sound.play()
+
     def animation(self):
         if self.rect.bottom < 300:
-            self.current_anim = self.PLAYER_JUMP
+            self.image = self.PLAYER_JUMP
         else:
             self.anim_index += 0.1
             if self.anim_index >= len(self.PLAYER_WALK):
                 self.anim_index = 0
-            self.current_anim = self.PLAYER_WALK[int(self.anim_index)]
-
-    def draw(self):
-        screen.blit(self.current_anim, self.rect)
+            self.image = self.PLAYER_WALK[int(self.anim_index)]
 
     def apply_gravity(self):
         self.gravity += 1
@@ -49,47 +56,46 @@ class Player:
         if self.rect.bottom > 300:
             self.rect.bottom = 300
 
-    def jump(self):
-        self.gravity = -20
-        self.jump_sound.play()
+    def update(self):
+        self.input()
+        self.apply_gravity()
+        self.animation()
 
 
-class Snail:
-    SNAIL_FRAME = [pygame.image.load('graphics/snail/snail1.png').convert_alpha(),
-                   pygame.image.load('graphics/snail/snail2.png').convert_alpha()]
-
-    def __init__(self, x=900, y=300):
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self, x, y, frames):
+        super().__init__()
+        self.frames = frames
         self.anim_index = 0
-        self.current_anim = self.SNAIL_FRAME[self.anim_index]
-        self.rect = self.current_anim.get_rect(midbottom=(x, y))
-
-    def draw(self):
-        screen.blit(self.current_anim, self.rect)
+        self.image = self.frames[self.anim_index]
+        self.rect = self.image.get_rect(midbottom=(x, y))
 
     def animation(self):
         self.anim_index += 0.5
-        if self.anim_index >= len(self.SNAIL_FRAME):
+        if self.anim_index >= len(self.frames):
             self.anim_index = 0
-        self.current_anim = self.SNAIL_FRAME[int(self.anim_index)]
+        self.image = self.frames[int(self.anim_index)]
+
+    def update(self):
+        self.animation()
+        self.rect.x -= 8
+        if self.rect.right < 0: self.kill()
 
 
-class Fly:
-    FLY_FRAME = [pygame.image.load('graphics/Fly/Fly1.png').convert_alpha(),
-                 pygame.image.load('graphics/Fly/Fly2.png').convert_alpha()]
+class Snail(Obstacle):
+    SNAIL_FRAMES = [pygame.image.load('graphics/snail/snail1.png').convert_alpha(),
+                    pygame.image.load('graphics/snail/snail2.png').convert_alpha()]
+
+    def __init__(self, x=900, y=300):
+        super().__init__(x, y, self.SNAIL_FRAMES)
+
+
+class Fly(Obstacle):
+    FLY_FRAMES = [pygame.image.load('graphics/Fly/Fly1.png').convert_alpha(),
+                  pygame.image.load('graphics/Fly/Fly2.png').convert_alpha()]
 
     def __init__(self, x=900, y=200):
-        self.anim_index = 0
-        self.current_anim = self.FLY_FRAME[self.anim_index]
-        self.rect = self.current_anim.get_rect(midbottom=(x, y))
-
-    def draw(self):
-        screen.blit(self.current_anim, self.rect)
-
-    def animation(self):
-        self.anim_index += 0.1
-        if self.anim_index >= len(self.FLY_FRAME):
-            self.anim_index = 0
-        self.current_anim = self.FLY_FRAME[int(self.anim_index)]
+        super().__init__(x, y, self.FLY_FRAMES)
 
 
 class Game:
@@ -99,9 +105,9 @@ class Game:
     def __init__(self):
         self.score = 0
         self.start_time = 0
-        self.obstacles = []
+        self.obstacles = pygame.sprite.Group()
         self.add_random_obstacle()
-        self.player = Player()
+        self.player = pygame.sprite.GroupSingle(Player())
         self.active = True
         pygame.mixer.music.load('audio/music.wav')
         pygame.mixer.music.set_volume(0.1)
@@ -109,7 +115,7 @@ class Game:
 
     def add_random_obstacle(self):
         x = random.randint(900, 1100)
-        self.obstacles.append(random.choice([Fly(x), Snail(x), Snail(x), Snail(x)]))
+        self.obstacles.add(random.choice([Fly(x), Snail(x), Snail(x), Snail(x)]))
 
     def draw_intro_screen(self):
         screen.fill((100, 160, 192))
@@ -135,19 +141,11 @@ class Game:
     def draw_score(self):
         draw_text(str(self.score), 400, 50)
 
-    def update_obstacles(self):
-        if game.obstacles:
-            if self.obstacles[0].rect.right < 0: del self.obstacles[0]
-
-            for obstacle in self.obstacles:
-                obstacle.rect.x -= 8
-                obstacle.animation()
-                obstacle.draw()
-
-                if obstacle.rect.colliderect(self.player.rect):
-                    self.active = False
-                    self.obstacles = []
-                    self.player.rect.bottom = 300
+    def collision_check(self):
+        if pygame.sprite.spritecollide(self.player.sprite, self.obstacles, False):
+            self.active = False
+            self.obstacles.empty()
+            self.player.sprite.rect.bottom = 300
 
 
 obstacle_timer = pygame.USEREVENT + 1
@@ -161,12 +159,6 @@ while True:
             pygame.quit()
             exit()
         if game.active:
-            if event.type == pygame.MOUSEBUTTONDOWN and game.player.rect.bottom == 300:
-                if game.player.rect.collidepoint(event.pos):
-                    game.player.jump()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and game.player.rect.bottom == 300:
-                    game.player.jump()
             if event.type == obstacle_timer:
                 game.add_random_obstacle()
         else:
@@ -180,12 +172,13 @@ while True:
         game.update_score()
         game.draw_score()
 
-        game.player.animation()
-        game.player.draw()
+        game.obstacles.draw(screen)
+        game.obstacles.update()
 
-        game.player.apply_gravity()
+        game.player.draw(screen)
+        game.player.update()
 
-        game.update_obstacles()
+        game.collision_check()
     else:
         game.draw_intro_screen()
 
